@@ -155,7 +155,7 @@ Design choices:
 - **Missing walls**: when there is no left wall, the ultrasonic times out and `readUltrasonic()` returns −1. Any reading above `NO_WALL_DIST` (20 cm) is also treated as no wall, because that is the wall of the next grid, not ours. The `leftDist > 0` check makes sure the robot does not nudge when there is no wall, and simply goes straight.
 - **Small corrections**: since each nudge is only 20 ms, the robot corrects a little at a time and goes back to straight as soon as it is far enough from the wall, instead of zig-zagging.
 
-`TOO_NEAR_LEFT` and `TOO_NEAR_RIGHT` will be found using MODE 0: we place the robot 2 cm from a wall and record the sensor readings.
+The thresholds were found using MODE 0 (see Sensor Design, Section 3): `TOO_NEAR_LEFT` = 9 cm and `TOO_NEAR_RIGHT` = 700.
 
 ### 6. Calibration of movement
 
@@ -191,3 +191,83 @@ At first the robot sometimes turned by itself after stopping. The reason was tha
 | Turns slowly became smaller during testing | Battery running low | Tune and run with a full battery |
 | Robot turned by itself after stopping | Voltage dip read as a button press | Button must read "pressed" for 50 ms in a row |
 | Code did not compile with the library from Canvas (3.31.0) | `MeMegaPi.cpp` uses pins A11–A13 that do not exist on Uno | Installed MakeBlock Drive Updated 3.30.0 |
+
+---
+
+## Sensor Design: Ultrasonic and IR (Checkpoint 2)
+
+### 1. Ultrasonic sensor (left side)
+
+The Makeblock ultrasonic sensor is on Port 1 and uses one signal pin (D12) for both trigger and echo.
+
+```
+readUltrasonic():
+    send a 10 us HIGH pulse on D12
+    duration = pulseIn(D12, HIGH, TIMEOUT)     // time for the echo to come back
+    if duration == 0: return -1                // timeout, no wall
+    dist = duration / 2 / 1000000 * 340 * 100  // cm, divide by 2 because sound goes there and back
+    if dist > NO_WALL_DIST: return -1
+    return dist
+```
+
+| Constant | Value | Reason |
+|---|---|---|
+| `TIMEOUT` | 2000 us | A wall 30 cm away gives an echo after about 1800 us, so 2000 us is enough. A short timeout keeps each loop fast when there is no wall |
+| `NO_WALL_DIST` | 20 cm | When our left wall is missing, the sensor may see the wall of the next grid. Anything further than 20 cm is not our wall, so it is treated as "no wall" |
+| `TOO_NEAR_LEFT` | 9 cm | Reading at which the robot nudges right (see Section 3) |
+
+The sensor cannot measure below 3 cm, so it is mounted a few cm inward from the side of the robot. This way the sensor is still more than 3 cm from the wall even when the robot's side is very close to it.
+
+### 2. IR proximity sensor (right side)
+
+The IR emitter is switched by decoder output Y0 through the L293D motor driver (the decoder can only sink 8 mA, the emitter needs more). The detector output is read on A0.
+
+**Removing ambient IR.** The detector voltage depends on both the IR reflected from the wall and the ambient IR in the room (lights, sunlight). Ambient IR changes across the maze, so one reading is not reliable. We read the detector twice, once with the emitter off and once with it on, and take the difference:
+
+```
+readIR():
+    turn IR emitter OFF (select green LED on the decoder)
+    wait IR_WAIT ms
+    irOff = analogRead(A0)        // ambient IR only
+    turn IR emitter ON
+    wait IR_WAIT ms
+    irOn = analogRead(A0)         // ambient IR + reflection from wall
+    return irOff - irOn
+```
+
+In our detector circuit, more IR gives a lower voltage, so `irOff - irOn` gets **bigger as the wall gets closer**. Ambient IR changes both readings by about the same amount, so it cancels out in the difference.
+
+| Constant | Value | Reason |
+|---|---|---|
+| `IR_WAIT` | 2 ms | Time for the detector voltage to settle after switching the emitter |
+| `TOO_NEAR_RIGHT` | 700 | `irDiff` above this means too close to the right wall (see Section 3) |
+
+### 3. Calibration
+
+We used MODE 0, which prints the readings every 200 ms to the Serial Monitor, and placed a wall at measured distances from the side of the robot.
+
+**IR sensor** (`IR_WAIT` = 2 ms unless stated):
+
+| Distance from robot's right side | IR off | IR on | IR diff |
+|---|---|---|---|
+| No wall | ~635 | ~450 | ~183 |
+| 7 cm | ~945 | ~670 | ~280 (IR_WAIT 500) |
+| 4–5 cm | ~940 | ~350 | ~590 (IR_WAIT 500) |
+| 3 cm | ~925 | ~250 | ~675 (IR_WAIT 500) |
+| 2 cm | ~890 | ~50 | ~840 |
+
+`TOO_NEAR_RIGHT` = 700 makes the robot steer away at about 3 cm, before it reaches 2 cm. It is far above the reading when the robot drives in the middle of the corridor (~280 at 7 cm), so the robot does not nudge for no reason.
+
+When people walked past or blocked the room light, `IR off` and `IR on` both changed by up to ~100, but `IR diff` stayed almost the same. This shows the ambient IR compensation works.
+
+**Ultrasonic sensor:** `TOO_NEAR_LEFT` = 9 cm was chosen from testing in the lab.
+
+<!-- TODO: add the ultrasonic readings at each distance -->
+
+### 4. Difficulties and solutions (sensors)
+
+| Problem | What we saw | Cause | Solution |
+|---|---|---|---|
+| IR diff was tiny | `IR diff` stayed at ~7–14 even with a finger right in front of the sensor | The detector could not react within 2 ms, so the "off" and "on" readings were the same | Tested with `IR_WAIT` = 500 ms to check the circuit, then fixed the detector circuit (see next row). After that, 2 ms worked |
+| IR detector saturated | `IR on` stayed at ~55 with or without a wall. `IR diff` only changed because the hand blocked room light (`IR off` went up), not because of reflection | Detector circuit too sensitive, so it was already "full" when the emitter was on | Changed R_receiver <!-- TODO: from ___ to ___ -->. `IR on` went up to ~450 with no wall and dropped to ~50 at 2 cm |
+| Readings changed when the board was touched | Touching the IR circuit made the readings jump | Probably loose component legs on the breadboard | <!-- TODO: confirm what we fixed --> |

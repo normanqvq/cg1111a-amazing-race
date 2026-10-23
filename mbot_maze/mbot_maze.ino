@@ -7,7 +7,7 @@
 
 // 0 = only print sensor values (robot does not move)
 // 1 = checkpoint 1 moves, 2 = checkpoint 2 wall following
-#define MODE 1
+#define MODE 2
 
 #define ULTRASONIC 12
 #define DEC_A A2
@@ -33,12 +33,12 @@
 // ultrasonic
 #define TIMEOUT 2000
 #define SPEED_OF_SOUND 340
-#define TOO_NEAR_LEFT 8       // cm, need to test
+#define TOO_NEAR_LEFT 9       // cm, tested in lab
 #define NO_WALL_DIST 20       // cm
 
 // IR
 #define IR_WAIT 2
-#define TOO_NEAR_RIGHT 300    // need to test
+#define TOO_NEAR_RIGHT 700    // tested: no wall ~183, 4-5 cm ~590, 3 cm ~675, 2 cm ~840
 
 MeDCMotor leftMotor(M1);
 MeDCMotor rightMotor(M2);
