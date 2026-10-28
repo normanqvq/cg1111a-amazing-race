@@ -9,7 +9,12 @@
 // 1 = checkpoint 1 moves, 2 = checkpoint 2 wall following
 // 3 = colour test (robot does not move, press button to read colour)
 // 4 = full maze run (use this for the demo)
-#define MODE 1
+#define MODE 2
+
+// only for MODE 4
+// 1 = read colour at each black strip (the real run)
+// 0 = colour sensor not ready yet, just do the turns in testColours[] one by one
+#define USE_COLOUR 0
 
 #define ULTRASONIC 12
 #define DEC_A A2
@@ -21,26 +26,29 @@
 #define LEFT_SPEED 200
 #define RIGHT_SPEED 200
 #define TURN_SPEED 200
-#define NUDGE_SPEED 140
+#define NUDGE_SPEED 120       // 140 was too weak to get away from the wall
 
 // timings in ms
 #define MOVE_TIME 20
 #define STRAIGHT_TIME 3000
 #define TURN_LEFT_TIME 410
 #define TURN_RIGHT_TIME 415
-#define TURN_180_TIME 780
-#define ONE_GRID_TIME 760
+#define TURN_180_TIME 770
+#define ONE_GRID_TIME 850
 #define PAUSE_TIME 1000
 
 // ultrasonic
 #define TIMEOUT 2000
 #define SPEED_OF_SOUND 340
 #define TOO_NEAR_LEFT 9       // cm, tested in lab
+#define TOO_FAR_LEFT 13       // cm, robot in the middle reads ~11.7
 #define NO_WALL_DIST 20       // cm
 
 // IR
 #define IR_WAIT 2
-#define TOO_NEAR_RIGHT 700    // tested: no wall ~183, 4-5 cm ~590, 3 cm ~675, 2 cm ~840
+#define TOO_NEAR_RIGHT 250    // tested in maze: centre ~89, 2 cm ~440, touching ~815,
+                              // angled 2 cm ~525. 700 and 550 never triggered in the maze,
+                              // 300 still went too close to the wall
 
 // colour sensor
 #define LDR_PIN A1
@@ -83,6 +91,11 @@ int colourValues[6][3] = {
 int raw[3];   // last raw LDR readings (red, green, blue)
 int rgb[3];   // last readings changed to 0-255
 
+// turns to do at each black strip when USE_COLOUR is 0
+// change the order to match the test track, WHITE = end
+int testColours[6] = {RED, GREEN, ORANGE, PINK, LIGHT_BLUE, WHITE};
+int testStep = 0;
+
 
 void setup()
 {
@@ -121,6 +134,8 @@ void loop()
             nudgeRight();
         } else if (irDiff > TOO_NEAR_RIGHT) {
             nudgeLeft();
+        } else if (leftDist > TOO_FAR_LEFT) {
+            nudgeLeft();   // drifting right, go back to the middle
         } else {
             moveForward();
         }
@@ -151,7 +166,14 @@ void loop()
         if (onBlack == 1 && justTurned == 0) {
             stopMotor();
             delay(200);   // let the robot stop before reading colour
-            int colour = detectColour();
+            int colour = 0;
+            if (USE_COLOUR == 1) {
+                colour = detectColour();
+            } else {
+                colour = testColours[testStep];
+                testStep = testStep + 1;
+            }
+            printColourName(colour);
             if (colour == RED) {
                 turnLeft();
             } else if (colour == GREEN) {
@@ -175,6 +197,9 @@ void loop()
             nudgeRight();
         } else if (irDiff > TOO_NEAR_RIGHT) {
             // too near to right wall, nudge left
+            nudgeLeft();
+        } else if (leftDist > TOO_FAR_LEFT) {
+            // too far from left wall = drifting right, go back to the middle
             nudgeLeft();
         } else {
             moveForward();

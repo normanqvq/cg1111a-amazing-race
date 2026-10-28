@@ -137,25 +137,28 @@ loop:
         nudgeRight()
     else if irDiff > TOO_NEAR_RIGHT:
         nudgeLeft()
+    else if leftDist > TOO_FAR_LEFT:  // drifting right, back to the middle
+        nudgeLeft()
     else:
         moveForward()
 ```
 
-A **nudge** is one 20 ms forward step where one wheel is slower (`NUDGE_SPEED` = 140 instead of 200), so the robot curves slightly away from the wall while still moving forward:
+A **nudge** is one 20 ms forward step where one wheel is slower (`NUDGE_SPEED` = 120 instead of 200), so the robot curves slightly away from the wall while still moving forward:
 
 | Function | Left wheel | Right wheel | Effect |
 |---|---|---|---|
 | `moveForward()` | 200 | 200 | Straight |
-| `nudgeLeft()` | 140 | 200 | Curves slightly left |
-| `nudgeRight()` | 200 | 140 | Curves slightly right |
+| `nudgeLeft()` | 120 | 200 | Curves slightly left |
+| `nudgeRight()` | 200 | 120 | Curves slightly right |
 
 Design choices:
 
 - **Black strip is checked first**, so the robot always stops at a waypoint even if it is also close to a wall.
 - **Missing walls**: when there is no left wall, the ultrasonic times out and `readUltrasonic()` returns −1. Any reading above `NO_WALL_DIST` (20 cm) is also treated as no wall, because that is the wall of the next grid, not ours. The `leftDist > 0` check makes sure the robot does not nudge when there is no wall, and simply goes straight.
+- **Keeping to the middle**: at first the robot only corrected when it was too close to a wall. Because it slowly drifted right, it ended up riding along the right wall at the threshold distance, and a small extra angle (e.g. after a turn) made it hit the wall. We added `TOO_FAR_LEFT`: when the left wall is further than 13 cm (the middle of the corridor reads ~11.7 cm), the robot nudges left. Now it stays 9–13 cm from the left wall, i.e. in the middle of the corridor. When there is no left wall, `leftDist` is −1, so this rule does nothing and the IR still protects the right side.
 - **Small corrections**: since each nudge is only 20 ms, the robot corrects a little at a time and goes back to straight as soon as it is far enough from the wall, instead of zig-zagging.
 
-The thresholds were found using MODE 0 (see Sensor Design, Section 3): `TOO_NEAR_LEFT` = 9 cm and `TOO_NEAR_RIGHT` = 700.
+The thresholds were found using MODE 0 in the maze (see Sensor Design, Section 3): `TOO_NEAR_LEFT` = 9 cm, `TOO_FAR_LEFT` = 13 cm and `TOO_NEAR_RIGHT` = 250.
 
 ### 6. Calibration of movement
 
@@ -215,6 +218,7 @@ readUltrasonic():
 | `TIMEOUT` | 2000 us | A wall 30 cm away gives an echo after about 1800 us, so 2000 us is enough. A short timeout keeps each loop fast when there is no wall |
 | `NO_WALL_DIST` | 20 cm | When our left wall is missing, the sensor may see the wall of the next grid. Anything further than 20 cm is not our wall, so it is treated as "no wall" |
 | `TOO_NEAR_LEFT` | 9 cm | Reading at which the robot nudges right (see Section 3) |
+| `TOO_FAR_LEFT` | 13 cm | Reading above which the robot nudges left, to stay in the middle (middle of corridor reads ~11.7 cm) |
 
 The sensor cannot measure below 3 cm, so it is mounted a few cm inward from the side of the robot. This way the sensor is still more than 3 cm from the wall even when the robot's side is very close to it.
 
@@ -240,13 +244,13 @@ In our detector circuit, more IR gives a lower voltage, so `irOff - irOn` gets *
 | Constant | Value | Reason |
 |---|---|---|
 | `IR_WAIT` | 2 ms | Time for the detector voltage to settle after switching the emitter |
-| `TOO_NEAR_RIGHT` | 700 | `irDiff` above this means too close to the right wall (see Section 3) |
+| `TOO_NEAR_RIGHT` | 250 | `irDiff` above this means too close to the right wall (see Section 3) |
 
 ### 3. Calibration
 
-We used MODE 0, which prints the readings every 200 ms to the Serial Monitor, and placed a wall at measured distances from the side of the robot.
+We used MODE 0, which prints the readings every 200 ms to the Serial Monitor.
 
-**IR sensor** (`IR_WAIT` = 2 ms unless stated):
+**IR sensor, first test on the bench** (hand / board as the wall, `IR_WAIT` = 2 ms unless stated):
 
 | Distance from robot's right side | IR off | IR on | IR diff |
 |---|---|---|---|
@@ -256,11 +260,25 @@ We used MODE 0, which prints the readings every 200 ms to the Serial Monitor, an
 | 3 cm | ~925 | ~250 | ~675 (IR_WAIT 500) |
 | 2 cm | ~890 | ~50 | ~840 |
 
-`TOO_NEAR_RIGHT` = 700 makes the robot steer away at about 3 cm, before it reaches 2 cm. It is far above the reading when the robot drives in the middle of the corridor (~280 at 7 cm), so the robot does not nudge for no reason.
+From this we first chose `TOO_NEAR_RIGHT` = 700 (about 3 cm). However, in the maze the robot still hit the right wall.
+
+**IR sensor, second test in the real maze** (robot placed by hand in a maze corridor):
+
+| Position of robot | IR diff |
+|---|---|
+| Middle of corridor, parallel | ~89 |
+| Parallel, right side 2 cm from wall | ~440 |
+| Parallel, right side touching wall | ~815 |
+| Angled 20–30° towards wall, front corner 2 cm from wall | ~524 |
+| Angled 20–30° towards wall, front corner touching wall | ~826 |
+
+The maze walls reflect much less IR than the hand / board on the bench, so at 2 cm the reading is only ~440. With 700 (and then 550) the robot never reacted. We changed `TOO_NEAR_RIGHT` to **250**: far above the middle-of-corridor value (~89), so no false nudges, and below every 2 cm value (~440 straight, ~524 angled), so the robot steers away before 2 cm. The test also showed that the reading does not drop when the robot touches the wall or comes in at an angle, so the sensor can always see the wall.
+
+Lesson: **calibrate in the real maze**, with the real walls and lighting.
 
 When people walked past or blocked the room light, `IR off` and `IR on` both changed by up to ~100, but `IR diff` stayed almost the same. This shows the ambient IR compensation works.
 
-**Ultrasonic sensor:** `TOO_NEAR_LEFT` = 9 cm was chosen from testing in the lab.
+**Ultrasonic sensor:** the robot in the middle of a maze corridor reads ~11.7 cm. `TOO_NEAR_LEFT` = 9 cm was chosen from testing in the lab, and `TOO_FAR_LEFT` = 13 cm keeps the robot near the middle.
 
 <!-- TODO: add the ultrasonic readings at each distance -->
 
@@ -271,3 +289,119 @@ When people walked past or blocked the room light, `IR off` and `IR on` both cha
 | IR diff was tiny | `IR diff` stayed at ~7–14 even with a finger right in front of the sensor | The detector could not react within 2 ms, so the "off" and "on" readings were the same | Tested with `IR_WAIT` = 500 ms to check the circuit, then fixed the detector circuit (see next row). After that, 2 ms worked |
 | IR detector saturated | `IR on` stayed at ~55 with or without a wall. `IR diff` only changed because the hand blocked room light (`IR off` went up), not because of reflection | Detector circuit too sensitive, so it was already "full" when the emitter was on | Changed R_receiver <!-- TODO: from ___ to ___ -->. `IR on` went up to ~450 with no wall and dropped to ~50 at 2 cm |
 | Readings changed when the board was touched | Touching the IR circuit made the readings jump | Probably loose component legs on the breadboard | <!-- TODO: confirm what we fixed --> |
+| Robot hit the right wall in the maze | Robot did not steer away until it touched the wall | Threshold (700) came from the bench test, but maze walls reflect less IR (2 cm reads only ~440) | Re-measured in the maze, changed `TOO_NEAR_RIGHT` to 250 |
+| Robot rubbed along the right wall | After steering away, it drifted back and rode along the wall | Robot only corrected when too close, and `NUDGE_SPEED` 140 was too gentle | Added `TOO_FAR_LEFT` to keep it in the middle, changed `NUDGE_SPEED` to 120 |
+
+---
+
+## Colour Sensor Calibration Procedure (Checkpoint 3)
+
+The colour values in `mbot_maze.ino` (`white`, `black`, `colourValues`) are **placeholder numbers**. They must be replaced with real readings from our own sensor before Checkpoint 3. **No calibration is allowed at the start of the demo**, so the final numbers have to be in the code before we hand the robot over.
+
+### How detection works
+
+```
+detectColour():
+    shine red   LED, wait LDR_WAIT ms, raw[0] = average of 10 LDR readings
+    shine green LED, wait LDR_WAIT ms, raw[1] = average of 10 LDR readings
+    shine blue  LED, wait LDR_WAIT ms, raw[2] = average of 10 LDR readings
+    turn IR emitter back on
+
+    for each of R, G, B:
+        rgb = (raw - black) / (white - black) * 255     // 0 = like black paper, 255 = like white paper
+    return the colour in colourValues closest to rgb  // smallest (dR² + dG² + dB²)
+```
+
+Scaling with white and black removes the differences between the three LEDs (e.g. the blue LED may be dimmer than the red one), so the six colours can be compared fairly.
+
+### Before you start
+
+- [ ] The LED + LDR board is **fixed firmly** under the robot. Its height and position must not change after calibration, or the readings change.
+- [ ] The sensor is **shielded from room light** (e.g. a black paper skirt around the LEDs and LDR). Room light changes across the lab and would change the readings.
+- [ ] Wiring matches the code: decoder Y1 = green, Y2 = blue, Y3 = red; LDR → Port 4 S2 (A1).
+- [ ] **Full battery.**
+- [ ] Use the **real colour papers** given for the maze, and do the test **in the maze** if possible (same lighting as the demo).
+
+### Step 0 – Set up
+
+1. In `mbot_maze.ino`, set `#define MODE 3`.
+2. Upload with the power switch **on** and USB plugged in. Keep USB plugged in.
+3. Open Serial Monitor at **9600 baud**.
+4. Each press of the onboard button reads the paper under the robot once and prints:
+   ```
+   raw: 650, 540, 480   rgb: 200, 120, 90   -> ORANGE
+   ```
+
+### Step 1 – Check the LEDs
+
+Press the button and look under the robot. You should see **red → green → blue**, about 0.2 s each. If the order is wrong, the decoder outputs are wired differently from the code: fix the wiring or change `shineRed/Green/Blue()` in `b_sensors.ino`.
+
+### Step 2 – Check that the readings are stable (`LDR_WAIT`)
+
+1. Put **white** paper under the sensor and press the button **5 times** without moving anything.
+2. The `raw` numbers should change by **less than about 10** between presses.
+3. If they change more, or keep going up / down, the LDR has not settled yet. Increase `LDR_WAIT` (200 → 300 → 500 ms), upload, and check again.
+
+Do this first, because `LDR_WAIT` changes all the other readings.
+
+### Step 3 – White and black
+
+1. **White paper**: press 5 times, moving the paper a little each time. Write down `raw` each time.
+2. **Black paper** (the black strip): same again.
+3. Take the **average** of each column and put it in the code:
+   ```cpp
+   int white[3] = {R, G, B};   // average raw readings on white paper
+   int black[3] = {R, G, B};   // average raw readings on black paper
+   ```
+4. Check: for **each** of R, G, B, white must be **clearly bigger** than black (ideally 100+ more). If not, the LEDs are too dim or room light is leaking in.
+5. **Upload again.** (`rgb` and the colour name are wrong until this is done.)
+
+### Step 4 – The five colours
+
+1. For each colour paper (red, green, orange, pink, light blue), press **5 times**, moving the paper a little each time, and write down `rgb`.
+2. Put the **average** into `colourValues`, in this order:
+   ```cpp
+   int colourValues[6][3] = {
+       {R, G, B},       // red
+       {R, G, B},       // green
+       {R, G, B},       // orange
+       {R, G, B},       // pink
+       {R, G, B},       // light blue
+       {255, 255, 255}  // white (by definition, after scaling)
+   };
+   ```
+3. Upload again.
+
+### Step 5 – Check
+
+1. Test **each colour 10 times**, moving the paper / robot a little each time. The name after `->` must be correct **every time**.
+2. Test **white** too: it must say `WHITE` (this is the end of the maze).
+3. **Real position check:** in MODE 4 the robot reads the colour **where it stops on the black strip**. Put the robot on a black strip exactly where it would stop, with the colour paper in its real position, and check that the colour sensor is over the **colour paper**, not the black strip. Then test the colour in that position.
+
+### Recording table
+
+| Paper | raw R | raw G | raw B | rgb R | rgb G | rgb B | Detected correctly (out of 10) |
+|---|---|---|---|---|---|---|---|
+| White | | | | – | – | – | |
+| Black | | | | – | – | – | – |
+| Red | | | | | | | |
+| Green | | | | | | | |
+| Orange | | | | | | | |
+| Pink | | | | | | | |
+| Light blue | | | | | | | |
+
+### Troubleshooting
+
+| Problem | Likely cause | Fix |
+|---|---|---|
+| Same paper gives very different numbers | LDR not settled | Increase `LDR_WAIT` |
+| White and black almost the same | LEDs too dim, or room light leaking in | Check LED resistors; add / improve the black skirt |
+| Two colours mixed up (e.g. red / orange, pink / white) | Their `rgb` values are too close | Re-measure both carefully; check the sensor height is fixed; compare the numbers to see which channel separates them |
+| Readings change after moving the robot to another place | Room light reaching the LDR | Improve the shielding, re-calibrate in the maze |
+| Correct in MODE 3 but wrong in the maze run | Sensor is over the black strip (or its edge) when the robot stops | Check Step 5.3; move the sensor or adjust where the robot stops |
+
+### When done
+
+1. Set `#define USE_COLOUR 1` (MODE 4 then reads the real colour instead of the test order).
+2. Run MODE 4 on short sections of the maze, then the full maze.
+3. Fill in the recording table above for the report.
