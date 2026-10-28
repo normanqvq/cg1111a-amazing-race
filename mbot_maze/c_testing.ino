@@ -68,3 +68,26 @@ void showSensors() {
         Serial.println("");
     }
 }
+
+// MODE 3
+// put a paper under the robot and press button
+// e.g.  raw: 650, 540, 480   rgb: 200, 120, 90   -> ORANGE
+void colourTest() {
+    waitButton();
+    int c = detectColour();
+
+    Serial.print("raw: ");
+    Serial.print(raw[0]);
+    Serial.print(", ");
+    Serial.print(raw[1]);
+    Serial.print(", ");
+    Serial.print(raw[2]);
+    Serial.print("   rgb: ");
+    Serial.print(rgb[0]);
+    Serial.print(", ");
+    Serial.print(rgb[1]);
+    Serial.print(", ");
+    Serial.print(rgb[2]);
+    Serial.print("   -> ");
+    printColourName(c);
+}
