@@ -1,9 +1,10 @@
 #include <Arduino.h>
 
-// EDIT these to match your actual decoder control connections.
-const uint8_t SELECT_A_PIN = 11;
-const uint8_t SELECT_B_PIN = 12;
-const uint8_t LDR_PIN = A0;
+// Our connections: Port 3 S1 (A2) -> decoder A, Port 3 S2 (A3) -> decoder B,
+// Port 4 S2 (A1) <- LDR. (A0 is the IR detector, D12 is the ultrasonic)
+const uint8_t SELECT_A_PIN = A2;
+const uint8_t SELECT_B_PIN = A3;
+const uint8_t LDR_PIN = A1;
 
 // Start with 500 ms. Increase if the LDR has not settled.
 const unsigned long SETTLE_MS = 500;
@@ -20,7 +21,7 @@ bool haveWhite = false;
 bool haveBlack = false;
 
 // Select one active-low decoder output.
-// Output 0 selects unused Y0, so no RGB LED is selected.
+// Output 0 selects Y0 (IR emitter in our circuit), so no RGB LED is on.
 void selectOutput(uint8_t output) {
   digitalWrite(SELECT_A_PIN, LOW);
   digitalWrite(SELECT_B_PIN, LOW);
