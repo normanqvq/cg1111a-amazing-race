@@ -1,9 +1,9 @@
 #include <Arduino.h>
 
-// Our connections: Port 3 S1 (A2) -> decoder A, Port 3 S2 (A3) -> decoder B,
+// Our connections: Port 3 A3 -> decoder A, Port 3 A2 -> decoder B,
 // Port 4 S2 (A1) <- LDR. (A0 is the IR detector, D12 is the ultrasonic)
-const uint8_t SELECT_A_PIN = A2;
-const uint8_t SELECT_B_PIN = A3;
+const uint8_t SELECT_A_PIN = A3;
+const uint8_t SELECT_B_PIN = A2;
 const uint8_t LDR_PIN = A1;
 
 // Start with 500 ms. Increase if the LDR has not settled.

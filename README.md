@@ -11,7 +11,9 @@ The sketch is split into tabs. Arduino joins all `.ino` files in the folder when
 | `mbot_maze/mbot_maze.ino` | Settings (`#define`s), global variables, `setup()`, `loop()` |
 | `mbot_maze/a_movement.ino` | Motor functions: forward, turns, double turns, nudges |
 | `mbot_maze/b_sensors.ino` | Decoder LEDs / IR emitter, ultrasonic sensor, IR sensor |
-| `mbot_maze/c_testing.ino` | Start button, Checkpoint 1 test sequence, sensor printing |
+| `mbot_maze/c_testing.ino` | Start button, Checkpoint 1 test sequence, sensor printing, colour test |
+| `mbot_maze/d_colour.ino` | Colour detection: `detectColour()`, closest colour |
+| `color_calibration/color_calibration.ino` | Separate sketch for colour calibration (115200 baud), not used in the run |
 
 `MODE` in `mbot_maze.ino` chooses what the mBot does:
 
@@ -20,6 +22,8 @@ The sketch is split into tabs. Arduino joins all `.ino` files in the folder when
 | 0 | Robot stays still and prints ultrasonic / IR / line sensor readings to Serial Monitor (9600 baud) every 200 ms |
 | 1 | Checkpoint 1: press the button once, the robot does every movement in turn |
 | 2 | Checkpoint 2: press the button, the robot drives straight and keeps away from walls, stops at the black strip |
+| 3 | Colour test: robot stays still, each button press reads the paper underneath and prints raw / 0–255 values and the colour |
+| 4 | Full maze run (demo): wall following + colour at each black strip + turns, stops and plays a tune at the end (white). `USE_COLOUR 0` makes it do a fixed list of turns instead of reading colour, for testing |
 
 Library: **MakeBlock Drive Updated 3.30.0** (3.31.0 does not compile for Arduino Uno).
 
@@ -30,7 +34,7 @@ Library: **MakeBlock Drive Updated 3.30.0** (3.31.0 does not compile for Arduino
 | M1 / M2 | Left motor / right motor |
 | Port 1 (D12) | Ultrasonic sensor, left side |
 | Port 2 | Line sensor, bottom |
-| Port 3 (A2, A3) | 2-to-4 decoder inputs A, B |
+| Port 3 (A3, A2) | 2-to-4 decoder inputs A, B (A3 → A, A2 → B) |
 | Port 4 (A0) | IR detector, right side |
 | Port 4 (A1) | LDR (colour sensor) |
 | A7 | Onboard push button |
@@ -399,6 +403,44 @@ Do this first, because `LDR_WAIT` changes all the other readings.
 | Two colours mixed up (e.g. red / orange, pink / white) | Their `rgb` values are too close | Re-measure both carefully; check the sensor height is fixed; compare the numbers to see which channel separates them |
 | Readings change after moving the robot to another place | Room light reaching the LDR | Improve the shielding, re-calibrate in the maze |
 | Correct in MODE 3 but wrong in the maze run | Sensor is over the black strip (or its edge) when the robot stops | Check Step 5.3; move the sensor or adjust where the robot stops |
+
+### Our calibration results
+
+Measured with MODE 3, `LDR_WAIT` = 500 ms, 5 presses per paper (readings within about ±5 when the paper did not move), averaged:
+
+| Paper | Raw R | Raw G | Raw B | 0–255 R | 0–255 G | 0–255 B |
+|---|---|---|---|---|---|---|
+| White | 725 | 786 | 601 | 255 | 255 | 255 |
+| Black | 651 | 674 | 344 | 0 | 0 | 0 |
+| Red | 717 | 695 | 419 | 227 | 47 | 74 |
+| Green | 673 | 751 | 504 | 75 | 175 | 158 |
+| Orange | 720 | 719 | 427 | 237 | 102 | 82 |
+| Pink | 722 | 760 | 551 | 244 | 195 | 205 |
+| Light blue | 669 | 743 | 554 | 62 | 157 | 208 |
+
+Distance between colours (0–255 values), closest pairs:
+
+| Pair | Distance |
+|---|---|
+| Green – light blue | 55 |
+| Red – orange | 57 |
+| Pink – white | 79 |
+| All other pairs | 154 or more |
+
+Check: every one of the 30 single presses (5 per colour, including white) was classified correctly with these values.
+
+Notes:
+- Under the red LED, red, orange, pink and white all read about the same (~720), because all four papers reflect red light well. Red vs orange is decided by the green LED, and pink vs white by the blue and green LEDs.
+- White − black is only 74 for red and 112 for green (257 for blue). Black still reads high under the red LED, so some LED light probably reaches the LDR directly. A black divider between the LEDs and the LDR would make the range bigger (needs re-calibration).
+
+Problems found during calibration:
+
+| Problem | What we saw | Fix |
+|---|---|---|
+| Readings kept dropping | With `LDR_WAIT` 200 ms, green and blue dropped by up to 70 over 5 presses on the same paper | `LDR_WAIT` 500 ms; readings then stayed within about ±5 |
+| Green LED did not light | Only red and blue came on | Fixed the green LED wiring <!-- TODO: what exactly was fixed --> |
+| Green and blue in the wrong order | LEDs came on red → blue → green | Port 3 wires to decoder A/B were swapped (A3 → A, A2 → B). Changed `DEC_A` to A3 and `DEC_B` to A2 in the code. Red and IR were not affected because they use A = B |
+| Readings different from the first test | Orange green/blue changed by ~80 after changing the setup <!-- TODO: what changed (skirt? maze?) --> | Re-measured all colours in the same setup |
 
 ### When done
 

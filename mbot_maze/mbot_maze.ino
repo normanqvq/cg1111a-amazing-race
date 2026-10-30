@@ -2,23 +2,25 @@
 
 // CG1111A A-maze-ing Race
 // Port 1: ultrasonic (left), Port 2: line sensor
-// Port 3: A2, A3 -> decoder, Port 4: A0 <- IR detector (right), A1 <- LDR
+// Port 3: A3 -> decoder A, A2 -> decoder B, Port 4: A0 <- IR detector (right), A1 <- LDR
 // Decoder: 00 IR, 01 green, 10 blue, 11 red
 
 // 0 = only print sensor values (robot does not move)
 // 1 = checkpoint 1 moves, 2 = checkpoint 2 wall following
 // 3 = colour test (robot does not move, press button to read colour)
 // 4 = full maze run (use this for the demo)
-#define MODE 2
+#define MODE 4
 
 // only for MODE 4
 // 1 = read colour at each black strip (the real run)
 // 0 = colour sensor not ready yet, just do the turns in testColours[] one by one
-#define USE_COLOUR 0
+#define USE_COLOUR 1
 
 #define ULTRASONIC 12
-#define DEC_A A2
-#define DEC_B A3
+// A3 goes to decoder A and A2 goes to decoder B on our board
+// (with A2 -> A, green and blue LEDs came on in the wrong order)
+#define DEC_A A3
+#define DEC_B A2
 #define IR_PIN A0
 #define BUTTON A7
 
@@ -52,7 +54,8 @@
 
 // colour sensor
 #define LDR_PIN A1
-#define LDR_WAIT 200          // ms to wait after switching LED, need to test
+#define LDR_WAIT 500          // ms to wait after switching LED. 200 was too short:
+                              // green and blue kept dropping when the paper did not move
 #define LDR_SAMPLES 10
 
 // colour numbers
@@ -75,17 +78,17 @@ int irDiff = 0;
 int started = 0;
 int justTurned = 0;   // 1 = just turned at a black strip and may still be on it
 
-// colour calibration, need to fill in after testing with MODE 3
+// colour calibration, measured with MODE 3 (LDR_WAIT 500, 5 presses each, averaged)
 // white and black are raw LDR readings for red, green, blue
-int white[3] = {800, 800, 800};
-int black[3] = {300, 300, 300};
+int white[3] = {725, 786, 601};
+int black[3] = {651, 674, 344};
 // 0-255 values of each colour paper, same order as the colour numbers above
 int colourValues[6][3] = {
-    {230, 80, 90},    // red
-    {90, 200, 120},   // green
-    {250, 160, 90},   // orange
-    {250, 180, 200},  // pink
-    {120, 200, 240},  // light blue
+    {227, 47, 74},    // red         raw 717, 695, 419
+    {75, 175, 158},   // green       raw 673, 751, 504
+    {237, 102, 82},   // orange      raw 720, 719, 427
+    {244, 195, 205},  // pink        raw 722, 760, 551
+    {62, 157, 208},   // light blue  raw 669, 743, 554
     {255, 255, 255}   // white
 };
 int raw[3];   // last raw LDR readings (red, green, blue)
