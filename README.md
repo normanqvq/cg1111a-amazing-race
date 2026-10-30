@@ -300,7 +300,7 @@ When people walked past or blocked the room light, `IR off` and `IR on` both cha
 
 ## Colour Sensor Calibration Procedure (Checkpoint 3)
 
-The colour values in `mbot_maze.ino` (`white`, `black`, `colourValues`) are **placeholder numbers**. They must be replaced with real readings from our own sensor before Checkpoint 3. **No calibration is allowed at the start of the demo**, so the final numbers have to be in the code before we hand the robot over.
+The colour values in `mbot_maze.ino` (`white`, `black`, `colourValues`) come from our own sensor, measured **in the maze** with the procedure below (results in [Our calibration results](#our-calibration-results)). **No calibration is allowed at the start of the demo**, so the final numbers have to be in the code before we hand the robot over.
 
 ### How detection works
 
@@ -324,7 +324,7 @@ Scaling with white and black removes the differences between the three LEDs (e.g
 - [ ] The sensor is **shielded from room light** (e.g. a black paper skirt around the LEDs and LDR). Room light changes across the lab and would change the readings.
 - [ ] Wiring matches the code: decoder Y1 = green, Y2 = blue, Y3 = red; LDR → Port 4 S2 (A1).
 - [ ] **Full battery.**
-- [ ] Use the **real colour papers** given for the maze, and do the test **in the maze** if possible (same lighting as the demo).
+- [ ] Use the **real colour papers** given for the maze, and calibrate **in the maze**, with the robot on a black strip like at a waypoint. The light in the maze is different from the table: our first calibration on the table failed in the maze (see Calibration history).
 
 ### Step 0 – Set up
 
@@ -338,13 +338,13 @@ Scaling with white and black removes the differences between the three LEDs (e.g
 
 ### Step 1 – Check the LEDs
 
-Press the button and look under the robot. You should see **red → green → blue**, about 0.2 s each. If the order is wrong, the decoder outputs are wired differently from the code: fix the wiring or change `shineRed/Green/Blue()` in `b_sensors.ino`.
+Press the button and look under the robot. You should see **red → green → blue**, about 0.5 s each (`LDR_WAIT`). If the order is wrong, the decoder outputs are wired differently from the code: fix the wiring or change `shineRed/Green/Blue()` in `b_sensors.ino`.
 
 ### Step 2 – Check that the readings are stable (`LDR_WAIT`)
 
 1. Put **white** paper under the sensor and press the button **5 times** without moving anything.
 2. The `raw` numbers should change by **less than about 10** between presses.
-3. If they change more, or keep going up / down, the LDR has not settled yet. Increase `LDR_WAIT` (200 → 300 → 500 ms), upload, and check again.
+3. If they change more, or keep going up / down, the LDR has not settled yet. Increase `LDR_WAIT` (200 → 300 → 500 ms), upload, and check again. We use **500 ms**.
 
 Do this first, because `LDR_WAIT` changes all the other readings.
 
@@ -382,18 +382,6 @@ Do this first, because `LDR_WAIT` changes all the other readings.
 2. Test **white** too: it must say `WHITE` (this is the end of the maze).
 3. **Real position check:** in MODE 4 the robot reads the colour **where it stops on the black strip**. Put the robot on a black strip exactly where it would stop, with the colour paper in its real position, and check that the colour sensor is over the **colour paper**, not the black strip. Then test the colour in that position.
 
-### Recording table
-
-| Paper | raw R | raw G | raw B | rgb R | rgb G | rgb B | Detected correctly (out of 10) |
-|---|---|---|---|---|---|---|---|
-| White | | | | – | – | – | |
-| Black | | | | – | – | – | – |
-| Red | | | | | | | |
-| Green | | | | | | | |
-| Orange | | | | | | | |
-| Pink | | | | | | | |
-| Light blue | | | | | | | |
-
 ### Troubleshooting
 
 | Problem | Likely cause | Fix |
@@ -406,41 +394,58 @@ Do this first, because `LDR_WAIT` changes all the other readings.
 
 ### Our calibration results
 
-Measured with MODE 3, `LDR_WAIT` = 500 ms, 5 presses per paper (readings within about ±5 when the paper did not move), averaged:
+Final values, measured **in the maze** with MODE 3 (robot on a black strip, `LDR_WAIT` = 500 ms, 5 presses per paper, readings within about ±5, averaged):
 
 | Paper | Raw R | Raw G | Raw B | 0–255 R | 0–255 G | 0–255 B |
 |---|---|---|---|---|---|---|
-| White | 725 | 786 | 601 | 255 | 255 | 255 |
-| Black | 651 | 674 | 344 | 0 | 0 | 0 |
-| Red | 717 | 695 | 419 | 227 | 47 | 74 |
-| Green | 673 | 751 | 504 | 75 | 175 | 158 |
-| Orange | 720 | 719 | 427 | 237 | 102 | 82 |
-| Pink | 722 | 760 | 551 | 244 | 195 | 205 |
-| Light blue | 669 | 743 | 554 | 62 | 157 | 208 |
+| White | 631 | 673 | 621 | 255 | 255 | 255 |
+| Black | 482 | 439 | 384 | 0 | 0 | 0 |
+| Red | 624 | 520 | 480 | 243 | 88 | 103 |
+| Green | 540 | 609 | 541 | 99 | 185 | 168 |
+| Orange | 627 | 573 | 479 | 248 | 146 | 102 |
+| Pink | 633 | 630 | 581 | 258 | 208 | 211 |
+| Light blue | 536 | 600 | 587 | 92 | 175 | 218 |
 
 Distance between colours (0–255 values), closest pairs:
 
 | Pair | Distance |
 |---|---|
-| Green – light blue | 55 |
-| Red – orange | 57 |
-| Pink – white | 79 |
-| All other pairs | 154 or more |
+| Green – light blue | 51 |
+| Red – orange | 58 |
+| Pink – white | 64 |
+| All other pairs | 126 or more |
 
-Check: every one of the 30 single presses (5 per colour, including white) was classified correctly with these values.
+Checks:
+- Every one of the 30 single presses (5 per colour, including white) is classified correctly with these values. For every press, the correct colour is at least 43 closer than the next colour.
+- **Full maze run with these values: all waypoints and the end of the maze were correct** (30 Oct 2026).
 
 Notes:
-- Under the red LED, red, orange, pink and white all read about the same (~720), because all four papers reflect red light well. Red vs orange is decided by the green LED, and pink vs white by the blue and green LEDs.
-- White − black is only 74 for red and 112 for green (257 for blue). Black still reads high under the red LED, so some LED light probably reaches the LDR directly. A black divider between the LEDs and the LDR would make the range bigger (needs re-calibration).
+- Under the red LED, red, orange, pink and white all read about the same (~630), because all four papers reflect red light well. Red vs orange is decided by the green LED, and pink vs white by the green and blue LEDs.
+- White − black is 149 / 234 / 237 for R / G / B in the maze, much bigger than on the table (74 / 112 / 257), which gives more room between colours.
+- Why the closest-colour method instead of hand-written ranges (e.g. "red if R > 200 and G < 120"): every colour automatically gets the area around its value up to halfway to the next colour, so a reading can never match no colour or two colours, and after re-calibrating only the 6 values need to change.
 
-**Maze test:** in the first full run the robot read the pink waypoint as WHITE and stopped. Measuring at that waypoint (robot on the black strip) showed that both pink and white read higher in the maze than on the bench (pink +14 / +16 / +32, white +11 / +13 / +22), because more room light reaches the sensor there. Pink and white were still different from each other in the maze, so we changed only these two reference values:
+### Calibration history
 
-| Reference | Before | After |
+| Attempt | What we did | Result |
 |---|---|---|
-| Pink | 244, 195, 205 (bench) | 291, 233, 237 (measured in the maze) |
-| White | 255, 255, 255 | 274, 270, 266 (middle of bench and maze white) |
+| 1. Table | Calibrated all colours on the table | All 30 presses correct on the table, but in the maze the robot read **pink as white** and stopped at the pink waypoint |
+| 2. Patch pink and white | Measured pink and white at the pink waypoint (both read +11 to +32 higher than on the table because of more room light) and changed only those two values | Pink was fixed, but **orange was read wrongly (robot turned left)** and the robot **did not stop at white** |
+| 3. Subtract room light in code | Read the LDR with no colour LED on and subtracted it from each reading | Readings became **unstable** (green jumped between ~400 and ~760) even with the robot not moving, so we **removed** this change |
+| 4. Calibrate everything in the maze | Same code as attempt 1, all 7 papers measured in the maze | **Full maze run passed** |
 
-With these values all 40 recorded presses (30 bench + pink and white in the maze) are classified correctly. Other colours were read correctly in the maze run, so they were not changed.
+Lesson: calibrate the colour sensor **where it will be used** (same light and same position as at a waypoint), the same as we found for the IR sensor.
+
+Table values from attempt 1, for comparison:
+
+| Paper | Raw R | Raw G | Raw B |
+|---|---|---|---|
+| White | 725 | 786 | 601 |
+| Black | 651 | 674 | 344 |
+| Red | 717 | 695 | 419 |
+| Green | 673 | 751 | 504 |
+| Orange | 720 | 719 | 427 |
+| Pink | 722 | 760 | 551 |
+| Light blue | 669 | 743 | 554 |
 
 Problems found during calibration:
 
@@ -450,9 +455,4 @@ Problems found during calibration:
 | Green LED did not light | Only red and blue came on | Fixed the green LED wiring <!-- TODO: what exactly was fixed --> |
 | Green and blue in the wrong order | LEDs came on red → blue → green | Port 3 wires to decoder A/B were swapped (A3 → A, A2 → B). Changed `DEC_A` to A3 and `DEC_B` to A2 in the code. Red and IR were not affected because they use A = B |
 | Readings different from the first test | Orange green/blue changed by ~80 after changing the setup <!-- TODO: what changed (skirt? maze?) --> | Re-measured all colours in the same setup |
-
-### When done
-
-1. Set `#define USE_COLOUR 1` (MODE 4 then reads the real colour instead of the test order).
-2. Run MODE 4 on short sections of the maze, then the full maze.
-3. Fill in the recording table above for the report.
+| Table values did not work in the maze | Pink read as white, orange read wrongly | Calibrated everything in the maze (see Calibration history) |
