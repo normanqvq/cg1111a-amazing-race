@@ -433,6 +433,15 @@ Notes:
 - Under the red LED, red, orange, pink and white all read about the same (~720), because all four papers reflect red light well. Red vs orange is decided by the green LED, and pink vs white by the blue and green LEDs.
 - White − black is only 74 for red and 112 for green (257 for blue). Black still reads high under the red LED, so some LED light probably reaches the LDR directly. A black divider between the LEDs and the LDR would make the range bigger (needs re-calibration).
 
+**Maze test:** in the first full run the robot read the pink waypoint as WHITE and stopped. Measuring at that waypoint (robot on the black strip) showed that both pink and white read higher in the maze than on the bench (pink +14 / +16 / +32, white +11 / +13 / +22), because more room light reaches the sensor there. Pink and white were still different from each other in the maze, so we changed only these two reference values:
+
+| Reference | Before | After |
+|---|---|---|
+| Pink | 244, 195, 205 (bench) | 291, 233, 237 (measured in the maze) |
+| White | 255, 255, 255 | 274, 270, 266 (middle of bench and maze white) |
+
+With these values all 40 recorded presses (30 bench + pink and white in the maze) are classified correctly. Other colours were read correctly in the maze run, so they were not changed.
+
 Problems found during calibration:
 
 | Problem | What we saw | Fix |

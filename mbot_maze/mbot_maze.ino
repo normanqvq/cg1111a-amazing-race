@@ -87,9 +87,10 @@ int colourValues[6][3] = {
     {227, 47, 74},    // red         raw 717, 695, 419
     {75, 175, 158},   // green       raw 673, 751, 504
     {237, 102, 82},   // orange      raw 720, 719, 427
-    {244, 195, 205},  // pink        raw 722, 760, 551
+    {291, 233, 237},  // pink        measured at a waypoint in the maze (bench value 244, 195, 205
+                      //             was read as white in the maze, the maze is brighter)
     {62, 157, 208},   // light blue  raw 669, 743, 554
-    {255, 255, 255}   // white
+    {274, 270, 266}   // white       middle of bench (255, 255, 255) and maze (294, 285, 276)
 };
 int raw[3];   // last raw LDR readings (red, green, blue)
 int rgb[3];   // last readings changed to 0-255
