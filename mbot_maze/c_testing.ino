@@ -75,6 +75,7 @@ void showSensors() {
 void colourTest() {
     waitButton();
     int c = detectColour();
+    showColour(c);
 
     Serial.print("raw: ");
     Serial.print(raw[0]);

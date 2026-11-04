@@ -71,3 +71,23 @@ void printColourName(int c) {
         Serial.println("WHITE");
     }
 }
+
+// light up the 2 LEDs on top of the mBot in the colour we detected,
+// so we can see what the robot thinks without the Serial Monitor
+// (kept dim so they do not use much battery)
+void showColour(int c) {
+    if (c == RED) {
+        led.setColor(60, 0, 0);
+    } else if (c == GREEN) {
+        led.setColor(0, 60, 0);
+    } else if (c == ORANGE) {
+        led.setColor(60, 15, 0);
+    } else if (c == PINK) {
+        led.setColor(60, 0, 25);
+    } else if (c == LIGHT_BLUE) {
+        led.setColor(0, 25, 60);
+    } else {
+        led.setColor(40, 40, 40);   // white
+    }
+    led.show();
+}

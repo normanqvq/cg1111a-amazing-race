@@ -70,6 +70,7 @@ MeDCMotor leftMotor(M1);
 MeDCMotor rightMotor(M2);
 MeLineFollower lineFinder(PORT_2);
 MeBuzzer buzzer;
+MeRGBLed led(0, 30);   // the 2 RGB LEDs on top of the mCore
 
 float leftDist = 0;   // -1 if no wall
 int irOff = 0;
@@ -109,6 +110,10 @@ void setup()
     pinMode(IR_PIN, INPUT);
     pinMode(LDR_PIN, INPUT);
     shineIR();
+
+    led.setpin(13);   // top LEDs are on pin 13
+    led.setColor(0, 0, 0);
+    led.show();
 
     Serial.begin(9600);
 }
@@ -178,6 +183,7 @@ void loop()
                 testStep = testStep + 1;
             }
             printColourName(colour);
+            showColour(colour);
             if (colour == RED) {
                 turnLeft();
             } else if (colour == GREEN) {
