@@ -1,29 +1,59 @@
 void celebrate() {
-    const int C = 262;
-    const int F = 349;
-    const int G = 392;
-    const int A = 440;
+    const int F5 = 698;
+    const int G5 = 784;
+    const int A5 = 880;
+    const int D5 = 587;
+    const int E5 = 659;
+    const int D6 = 1175;
 
+    // 0 means a rest.
+    const int notes[] = {
+        F5, F5, F5, 0, G5, F5,
+        F5, F5, 0, A5, G5, F5,
+        0, G5, G5, G5, D5, D5,
+        E5, E5, E5, E5, F5, G5, A5,
+        F5, G5, A5, D6
+    };
+
+    // Each tick is one third of a beat at 167 BPM.
+    const byte ticks[] = {
+        3, 3, 3, 3, 5, 7,
+        3, 3, 2, 1, 2, 10,
+        2, 3, 3, 1, 3, 3,
+        2, 1, 2, 1, 3, 2, 7,
+        2, 1, 2, 1
+    };
+
+    unsigned long start = millis();
+    unsigned int totalTicks = 0;
+
+    for (byte i = 0; i < sizeof(ticks) / sizeof(ticks[0]); i++) {
+        totalTicks += ticks[i];
+
+        unsigned long target = totalTicks * 60000UL / (167UL * 3);
+        if (target > 10000UL) target = 10000UL;
+
+        unsigned long elapsed = millis() - start;
+        if (elapsed >= 10000UL) break;
+
+        unsigned long duration = target > elapsed ? target - elapsed : 0;
+
+        if (notes[i] != 0 && duration > 15) {
+            // tone() already waits while playing.
+            buzzer.tone(notes[i], duration - 15);
+            buzzer.noTone();
+        }
+
+        while (millis() - start < target) {
+            delay(1);
+        }
+    }
+
+    buzzer.noTone();
+
+    // Stay stopped after celebrating.
     while (true) {
-        // "Don don don donki"
-        buzzer.tone(C, 150);
-        buzzer.tone(C, 150);
-        buzzer.tone(C, 150);
-        buzzer.tone(F, 150);
-        buzzer.tone(G, 150);
-        buzzer.tone(A, 250);
-
-        delay(150);
-
-        // "Don don donki"
-        buzzer.tone(F, 150);
-        buzzer.tone(G, 150);
-        buzzer.tone(A, 150);
-        buzzer.tone(F, 150);
-        buzzer.tone(G, 150);
-        buzzer.tone(A, 250);
-
-        delay(300);  // Pause before repeating
+        delay(100);
     }
 }
 
