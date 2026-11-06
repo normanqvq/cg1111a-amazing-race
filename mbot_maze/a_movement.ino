@@ -1,12 +1,32 @@
 void celebrate() {
-    // Code for playing celebratory tune
-    buzzer.tone(392, 150);
-    buzzer.tone(523, 150);
-    buzzer.tone(659, 150);
-    buzzer.tone(784, 300);
-    buzzer.tone(659, 150);
-    buzzer.tone(784, 600);
-    buzzer.noTone();
+    const int C = 262;
+    const int F = 349;
+    const int G = 392;
+    const int A = 440;
+
+    while (true) {
+        // "Don don don donki"
+        buzzer.tone(C, 150);
+        buzzer.tone(C, 150);
+        buzzer.tone(C, 150);
+        buzzer.tone(F, 150);
+        buzzer.tone(G, 150);
+        buzzer.tone(A, 250);
+
+        delay(150);
+
+        // "Don don donki"
+        buzzer.tone(F, 150);
+        buzzer.tone(G, 150);
+        buzzer.tone(A, 150);
+        buzzer.tone(F, 150);
+        buzzer.tone(G, 150);
+        buzzer.tone(A, 250);
+
+        delay(300);  // Pause before repeating
+    }
+}
+
 }
 
 void stopMotor() {
