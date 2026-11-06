@@ -43,8 +43,8 @@ void turnLeft() {
 
 void uTurn() {
     // Code for u-turn
-    leftMotor.run(TURN_SPEED);
-    rightMotor.run(TURN_SPEED);
+    leftMotor.run(-TURN_SPEED);
+    rightMotor.run(-TURN_SPEED);
     delay(TURN_180_TIME);
     stopMotor();
     delay(100);

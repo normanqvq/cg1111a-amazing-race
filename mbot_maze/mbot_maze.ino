@@ -79,18 +79,19 @@ int irDiff = 0;
 int started = 0;
 int justTurned = 0;   // 1 = just turned at a black strip and may still be on it
 
-// colour calibration, measured with MODE 3 in the maze on 4 Nov (robot on a black strip,
-// white = the end-of-maze white paper, LDR_WAIT 500, 10 presses each, averaged)
+// colour calibration, measured with MODE 3 in the maze on 6 Nov, after making the
+// black skirt bigger (robot on a black strip, white = the end-of-maze white paper,
+// LDR_WAIT 500, 10 presses each, averaged)
 // white and black are raw LDR readings for red, green, blue
-int white[3] = {614, 748, 639};
-int black[3] = {404, 564, 440};
+int white[3] = {594, 747, 620};
+int black[3] = {431, 582, 450};
 // 0-255 values of each colour paper, same order as the colour numbers above
 int colourValues[6][3] = {
-    {217, 91, 105},   // red         raw 583, 630, 522
-    {108, 187, 149},  // green       raw 493, 699, 557
-    {234, 149, 117},  // orange      raw 597, 672, 532
-    {247, 212, 211},  // pink        raw 608, 717, 605
-    {95, 174, 188},   // light blue  raw 483, 690, 587
+    {242, 66, 64},    // red         raw 586, 625, 493
+    {93, 188, 171},   // green       raw 491, 704, 564
+    {259, 136, 63},   // orange      raw 597, 670, 492
+    {258, 202, 195},  // pink        raw 596, 713, 580
+    {81, 176, 216},   // light blue  raw 483, 696, 594
     {255, 255, 255}   // white
 };
 int raw[3];   // last raw LDR readings (red, green, blue)
