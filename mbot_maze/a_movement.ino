@@ -27,8 +27,6 @@ void celebrate() {
     }
 }
 
-}
-
 void stopMotor() {
     // Code for stopping motor
     leftMotor.stop();
