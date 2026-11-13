@@ -26,7 +26,7 @@
 
 // speeds
 #define LEFT_SPEED 200
-#define RIGHT_SPEED 200
+#define RIGHT_SPEED 190
 #define TURN_SPEED 200
 #define NUDGE_SPEED 120       // 140 was too weak to get away from the wall
 
